@@ -1,0 +1,96 @@
+name: Autograding Tests
+
+on:
+  - push
+  - workflow_dispatch
+  - repository_dispatch
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+env: 
+  CARGO_TERM_COLOR: always
+
+jobs:
+  run-tests:
+    # ubuntu-latest image comes with the latest stable versions of Rust tools
+    # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md#rust-tools
+    # https://github.com/rust-lang/rustup/tags
+    # https://releases.rs/
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12 # Even the Coopers' running test is faster than this...
+
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+
+    # Checkout the repository, https://github.com/actions/checkout
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      run: rustup default stable
+
+    # Cache Cargo dependencies, https://github.com/actions/cache
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+
+    - name: Check that there are no formatter changes
+      run: |
+        cargo fmt
+        git status --porcelain -uno # https://git-scm.com/docs/git-status
+    
+    - name: Build the application
+      run: cargo build --verbose
+      
+    - name: Unit tests
+      run: cargo test --verbose
+
+    - name: Install code coverage tool
+      run: cargo install cargo-tarpaulin
+
+    # https://github.com/classroom-resources/autograding-io-grader
+    - name: Autograding Test Coverage
+      id: auto-coverage
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'Unit test coverage'
+        command: 'cargo tarpaulin'
+        expected-output: '100.00% coverage'
+        comparison-method: 'contains'
+        max-score: 1
+
+    - name: Autograding PNG file 1
+      id: auto-png-1
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'PNG file is saved when using lower case letters'
+        command: 'cargo run -- "hello there" && ls'
+        expected-output: '12998c017066eb0d2a70b94e6ed3192985855ce390f321bbdb832022888bd251.png'
+        comparison-method: 'contains'
+        max-score: 1
+
+    - name: Autograding PNG file 2
+      id: auto-png-2
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'PNG file is saved when using capital letter'
+        command: 'cargo run -- "Hello there" && ls'
+        expected-output: '4e47826698bb4630fb4451010062fadbf85d61427cbdfaed7ad0f23f239bed89.png'
+        comparison-method: 'contains'
+        max-score: 1
+
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        AUTO-COVERAGE_RESULTS: "${{steps.auto-coverage.outputs.result}}"
+        AUTO-PNG-1_RESULTS: "${{steps.auto-png-1.outputs.result}}"
+        AUTO-PNG-2_RESULTS: "${{steps.auto-png-2.outputs.result}}"
+      with:
+        runners: auto-coverage,auto-png-1,auto-png-2

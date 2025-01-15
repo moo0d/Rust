@@ -1,0 +1,7 @@
+[package]
+name = "qr-code-generation"
+version = "0.1.0"
+authors = ["Your Name <your.email@metropolia.fi>"]
+edition = "2021"
+
+[dependencies]
