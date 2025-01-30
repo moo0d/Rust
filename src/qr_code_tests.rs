@@ -32,7 +32,6 @@ mod tests {
 
     #[test]
     fn test_generate_qr_code_file_creation_error() {
-        // Simulate file creation error by providing an invalid directory
         let input = "Hello there";
         let result = generate_qr_code(input, "/invalid_path");
         assert!(result.is_err());
