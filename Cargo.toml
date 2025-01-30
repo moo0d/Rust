@@ -5,3 +5,7 @@ authors = ["Your Name <your.email@metropolia.fi>"]
 edition = "2021"
 
 [dependencies]
+qrcode = "0.12.0"
+image = "0.23.14"
+sha2 = "0.10.6"
+mockall = "0.11"
